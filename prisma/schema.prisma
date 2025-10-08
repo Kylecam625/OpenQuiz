@@ -1,0 +1,212 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  decks         Deck[]
+  flashcards    Flashcard[]
+  studySessions StudySession[]
+  reviews       Review[]
+  practiceTests PracticeTest[]
+  notes         Note[]
+  settings      UserSettings?
+}
+
+model UserSettings {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  cardsPerSession       Int      @default(20)
+  defaultStudyMode      String   @default("flip") // flip, multiple-choice, typing
+  enableNotifications   Boolean  @default(true)
+  theme                 String   @default("light")
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model Deck {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String
+  description String?
+  color       String?
+  tags        String[]
+  
+  flashcards  Flashcard[]
+  studySessions StudySession[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId])
+}
+
+model Flashcard {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deckId      String
+  deck        Deck      @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  
+  front       String    @db.Text
+  back        String    @db.Text
+  explanation String?   @db.Text  // AI-generated explanation (cached)
+  
+  // Spaced repetition data
+  easeFactor  Float     @default(2.5)
+  interval    Int       @default(0)  // Days until next review
+  repetitions Int       @default(0)
+  nextReview  DateTime  @default(now())
+  
+  reviews     Review[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId, deckId])
+  @@index([nextReview])
+}
+
+model StudySession {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deckId      String?
+  deck        Deck?     @relation(fields: [deckId], references: [id], onDelete: SetNull)
+  
+  studyMode   String    // flip, multiple-choice, typing
+  cardsStudied Int      @default(0)
+  duration    Int       @default(0)  // Seconds
+  
+  reviews     Review[]
+  
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  
+  @@index([userId])
+}
+
+model Review {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flashcardId   String
+  flashcard     Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+  sessionId     String?
+  session       StudySession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  
+  rating        Int       // 1: Again, 2: Hard, 3: Good, 4: Easy
+  timeSpent     Int       // Seconds
+  
+  createdAt     DateTime  @default(now())
+  
+  @@index([userId, flashcardId])
+  @@index([createdAt])
+}
+
+model PracticeTest {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String
+  description String?
+  deckIds     String[]  // Tests can span multiple decks
+  
+  questions   TestQuestion[]
+  attempts    TestAttempt[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId])
+}
+
+model TestQuestion {
+  id              String       @id @default(cuid())
+  testId          String
+  test            PracticeTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+  
+  question        String       @db.Text
+  questionType    String       // multiple-choice, short-answer, true-false
+  correctAnswer   String       @db.Text
+  options         String[]     // For multiple choice
+  explanation     String?      @db.Text
+  
+  order           Int
+  
+  answers         TestAnswer[]
+  
+  @@index([testId])
+}
+
+model TestAttempt {
+  id          String    @id @default(cuid())
+  testId      String
+  test        PracticeTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+  
+  score       Float
+  totalQuestions Int
+  correctAnswers Int
+  duration    Int       // Seconds
+  
+  answers     TestAnswer[]
+  
+  startedAt   DateTime  @default(now())
+  completedAt DateTime
+  
+  @@index([testId])
+}
+
+model TestAnswer {
+  id          String       @id @default(cuid())
+  attemptId   String
+  attempt     TestAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId  String
+  question    TestQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  userAnswer  String       @db.Text
+  isCorrect   Boolean
+  
+  @@index([attemptId])
+}
+
+model Note {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String
+  content     String    @db.Text  // Markdown with LaTeX
+  folder      String?               // For folder organization
+  tags        String[]
+  
+  parentId    String?
+  parent      Note?     @relation("NoteHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Note[]    @relation("NoteHierarchy")
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([parentId])
+}
+
