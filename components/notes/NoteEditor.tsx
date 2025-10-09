@@ -21,6 +21,7 @@ import {
   Calculator,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { marked } from "marked";
 import "katex/dist/katex.min.css";
 
 interface Note {
@@ -64,6 +65,42 @@ export function NoteEditor({ note, onUpdate }: NoteEditorProps) {
       attributes: {
         class:
           "prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none focus:outline-none min-h-[calc(100vh-12rem)] px-6 py-4",
+      },
+      handlePaste: (view, event) => {
+        const text = event.clipboardData?.getData("text/plain");
+        
+        if (!text) return false;
+        
+        // Check if text looks like markdown (has markdown syntax)
+        const hasMarkdownSyntax = 
+          /^#{1,6}\s/m.test(text) ||         // Headers
+          /^\*\s|^-\s|^\+\s/m.test(text) ||  // Unordered lists
+          /^\d+\.\s/m.test(text) ||          // Ordered lists
+          /\[.+\]\(.+\)/.test(text) ||       // Links
+          /^```/m.test(text) ||              // Code blocks
+          /^\>/m.test(text) ||               // Blockquotes
+          /\*\*.+\*\*/.test(text) ||         // Bold
+          /\*.+\*/.test(text) ||             // Italic
+          /~~.+~~/.test(text) ||             // Strikethrough
+          /`.+`/.test(text) ||               // Inline code
+          /^---$|^\*\*\*$/m.test(text);      // Horizontal rules
+        
+        if (hasMarkdownSyntax) {
+          try {
+            // Convert markdown to HTML
+            const html = marked.parse(text, { async: false, breaks: true, gfm: true }) as string;
+            
+            // Insert the HTML
+            editor?.commands.insertContent(html);
+            
+            return true; // Prevent default paste behavior
+          } catch (error) {
+            console.error("Failed to parse markdown:", error);
+            return false; // Fall back to default paste
+          }
+        }
+        
+        return false; // Use default paste for non-markdown text
       },
     },
     onUpdate: ({ editor }) => {

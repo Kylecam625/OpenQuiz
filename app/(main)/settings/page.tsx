@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, User, Settings as SettingsIcon, Save } from "lucide-react";
+import { useTheme } from "@/lib/hooks/use-theme";
+import { themes } from "@/lib/config/themes";
 
 interface UserSettings {
   id: string;
@@ -19,6 +21,7 @@ interface UserSettings {
 
 export default function SettingsPage() {
   const { data: session } = useSession();
+  const { theme: currentTheme, setTheme } = useTheme();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -59,15 +62,10 @@ export default function SettingsPage() {
     }
   };
 
-  const handleThemeChange = (theme: string) => {
-    setSettings({ ...settings!, theme });
-    
-    // Apply theme immediately
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+  const handleThemeChange = (themeName: string) => {
+    setSettings({ ...settings!, theme: themeName });
+    // Use theme context to apply theme immediately
+    setTheme(themeName as any);
   };
 
   if (loading) {
@@ -253,48 +251,30 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Theme</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    onClick={() => handleThemeChange("light")}
-                    className={`p-4 border-2 rounded-lg transition-all ${
-                      settings.theme === "light"
-                        ? "border-primary bg-primary/5"
-                        : "border-muted hover:border-primary/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center">
-                        ☀️
-                      </div>
-                      <div className="text-left">
-                        <div className="font-semibold">Light</div>
-                        <div className="text-xs text-muted-foreground">
-                          Bright and clean
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {themes.map((themeOption) => (
+                    <button
+                      key={themeOption.name}
+                      onClick={() => handleThemeChange(themeOption.name)}
+                      className={`p-4 border-2 rounded-lg transition-all ${
+                        currentTheme === themeOption.name
+                          ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                          : "border-muted hover:border-primary/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-3xl">
+                          {themeOption.icon}
+                        </div>
+                        <div className="text-left flex-1">
+                          <div className="font-semibold">{themeOption.label}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {themeOption.description}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handleThemeChange("dark")}
-                    className={`p-4 border-2 rounded-lg transition-all ${
-                      settings.theme === "dark"
-                        ? "border-primary bg-primary/5"
-                        : "border-muted hover:border-primary/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-800 border-2 flex items-center justify-center">
-                        🌙
-                      </div>
-                      <div className="text-left">
-                        <div className="font-semibold">Dark</div>
-                        <div className="text-xs text-muted-foreground">
-                          Easy on the eyes
-                        </div>
-                      </div>
-                    </div>
-                  </button>
+                    </button>
+                  ))}
                 </div>
               </div>
             </CardContent>

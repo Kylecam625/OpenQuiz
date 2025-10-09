@@ -32,6 +32,7 @@
     "katex": "^0.16.9",
     "lucide-react": "^0.314.0",
     "mammoth": "^1.6.0",
+    "marked": "^16.4.0",
     "next": "^14.1.0",
     "next-auth": "^4.24.5",
     "next-themes": "^0.4.6",
@@ -50,6 +51,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/marked": "^5.0.2",
     "@types/node": "^20.11.5",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",

@@ -166,6 +166,7 @@ export default function StudyPage() {
       <StudyProgress current={currentIndex + 1} total={cards.length} />
 
       <FlashcardDisplay
+        key={currentCard.id}
         front={currentCard.front}
         back={currentCard.back}
         cardId={currentCard.id}

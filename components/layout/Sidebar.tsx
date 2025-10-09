@@ -11,6 +11,7 @@ import {
   FileText,
   ClipboardList,
   Settings,
+  Timer,
 } from "lucide-react";
 
 const navigation = [
@@ -20,6 +21,7 @@ const navigation = [
   { name: "Generate", href: "/generate", icon: Sparkles },
   { name: "Practice Tests", href: "/practice", icon: ClipboardList },
   { name: "Notes", href: "/notes", icon: FileText },
+  { name: "Pomodoro", href: "/pomodoro", icon: Timer },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
